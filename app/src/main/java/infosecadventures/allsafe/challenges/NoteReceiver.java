@@ -31,23 +31,9 @@ public class NoteReceiver extends BroadcastReceiver {
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (!"infosecadventures.allsafe.action.PROCESS_NOTE".equals(intent.getAction())) {
-            return;
-        }
-
         String server = intent.getStringExtra("server");
         String note = intent.getStringExtra("note");
         String notification_message = intent.getStringExtra("notification_message");
-
-        if (server == null || server.trim().isEmpty()
-                || note == null || note.trim().isEmpty()
-                || notification_message == null || notification_message.trim().isEmpty()) {
-            return;
-        }
-
-        server = server.trim();
-        note = note.trim();
-        notification_message = notification_message.trim();
 
         OkHttpClient okHttpClient = new OkHttpClient.Builder().build();
 
