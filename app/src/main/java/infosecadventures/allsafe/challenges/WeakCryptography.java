@@ -40,7 +40,7 @@ public class WeakCryptography extends Fragment {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, iv);
             cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, gcmParameterSpec);
-            byte[] encrypted = cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
+            byte[] encrypted = cipher.doFinal(value.getBytes());
 
             byte[] combined = new byte[iv.length + encrypted.length];
             System.arraycopy(iv, 0, combined, 0, iv.length);
@@ -67,9 +67,9 @@ public class WeakCryptography extends Fragment {
     }
 
     public static String randomNumber() {
-        SecureRandom secureRandom = new SecureRandom();
-        int randomNumber = secureRandom.nextInt(100000) + 1;
-        return Integer.toString(randomNumber);
+        SecureRandom rnd = new SecureRandom();
+        int n = rnd.nextInt(100000) + 1;
+        return Integer.toString(n);
     }
 
     @Override
