@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import infosecadventures.allsafe.BuildConfig;
 import infosecadventures.allsafe.R;
 import infosecadventures.allsafe.utils.SnackUtil;
 import okhttp3.Call;
@@ -46,7 +47,9 @@ public class CertificatePinning extends Fragment {
 
             CertificatePinner.Builder certificatePinner = new CertificatePinner.Builder();
             for (String hash : hashes) {
-                Log.d("ALLSAFE", hash);
+                if (BuildConfig.DEBUG) {
+                    Log.d("ALLSAFE", "Processing certificate hash.");
+                }
                 certificatePinner.add("httpbin.io", hash);
             }
 
@@ -62,7 +65,9 @@ public class CertificatePinning extends Fragment {
                 @Override
                 public void onFailure(@NotNull Call call, @NotNull IOException e) {
                     final String message = e.getMessage();
-                    Log.d("ALLSAFE", message != null ? message : "IOException with no message");
+                    if (BuildConfig.DEBUG) {
+                        Log.d("ALLSAFE", message != null ? message : "IOException with no message");
+                    }
                     if (getActivity() != null) {
                         requireActivity().runOnUiThread(() -> SnackUtil.INSTANCE.simpleMessage(requireActivity(), message != null ? message : "Connection failed!"));
                     }
@@ -70,7 +75,9 @@ public class CertificatePinning extends Fragment {
 
                 @Override
                 public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                    Log.d("ALLSAFE", Objects.requireNonNull(response.body()).string());
+                    if (BuildConfig.DEBUG) {
+                        Log.d("ALLSAFE", "Network response received for debugging.");
+                    }
                     if (getActivity() != null) {
                         requireActivity().runOnUiThread(() -> {
                             if (response.isSuccessful()) {
