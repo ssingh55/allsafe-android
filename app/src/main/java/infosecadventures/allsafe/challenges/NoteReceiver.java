@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.Objects;
 
+import infosecadventures.allsafe.BuildConfig;
 import infosecadventures.allsafe.R;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -47,7 +48,9 @@ public class NoteReceiver extends BroadcastReceiver {
                 .addQueryParameter("note", note)
                 .build();
 
-        Log.d("ALLSAFE", httpUrl.toString());
+        if (BuildConfig.DEBUG) {
+            Log.d("ALLSAFE", "HttpUrl constructed for request.");
+        }
 
         Request request = new Request.Builder()
                 .url(httpUrl)
@@ -57,12 +60,16 @@ public class NoteReceiver extends BroadcastReceiver {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 // initially you'll probably get "Unable to resolve host" error message
-                Log.d("ALLSAFE", e.getMessage());
+                if (BuildConfig.DEBUG) {
+                    Log.d("ALLSAFE", e.getMessage());
+                }
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                Log.d("ALLSAFE", Objects.requireNonNull(response.body()).string());
+                if (BuildConfig.DEBUG) {
+                    Log.d("ALLSAFE", "Network response received for debugging.");
+                }
             }
         });
 
