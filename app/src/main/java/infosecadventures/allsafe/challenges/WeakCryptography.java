@@ -11,15 +11,19 @@ import androidx.fragment.app.Fragment;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Random;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import infosecadventures.allsafe.R;
@@ -32,16 +36,22 @@ public class WeakCryptography extends Fragment {
     public static String encrypt(String value) {
         try {
             SecretKeySpec secretKeySpec = new SecretKeySpec(KEY.getBytes(StandardCharsets.UTF_8), "AES");
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-            byte[] encrypted = cipher.doFinal(value.getBytes());
-            return new String(encrypted);
-        } catch (
-                NoSuchPaddingException |
-                        NoSuchAlgorithmException |
-                        InvalidKeyException |
-                        BadPaddingException |
-                        IllegalBlockSizeException e) {
+
+            SecureRandom secureRandom = new SecureRandom();
+            byte[] iv = new byte[12];
+            secureRandom.nextBytes(iv);
+
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(128, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, gcmParameterSpec);
+            byte[] encrypted = cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
+
+            byte[] combined = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, combined, 0, iv.length);
+            System.arraycopy(encrypted, 0, combined, iv.length, encrypted.length);
+
+            return Base64.getEncoder().encodeToString(combined);
+        } catch (GeneralSecurityException e) {
             e.printStackTrace();
         }
         return null;
@@ -61,7 +71,7 @@ public class WeakCryptography extends Fragment {
     }
 
     public static String randomNumber() {
-        Random rnd = new Random();
+        SecureRandom rnd = new SecureRandom();
         int n = rnd.nextInt(100000) + 1;
         return Integer.toString(n);
     }
