@@ -47,8 +47,6 @@ public class NoteReceiver extends BroadcastReceiver {
                 .addQueryParameter("note", note)
                 .build();
 
-        Log.d("ALLSAFE", httpUrl.toString());
-
         Request request = new Request.Builder()
                 .url(httpUrl)
                 .build();
@@ -57,12 +55,10 @@ public class NoteReceiver extends BroadcastReceiver {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 // initially you'll probably get "Unable to resolve host" error message
-                Log.d("ALLSAFE", e.getMessage());
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                Log.d("ALLSAFE", Objects.requireNonNull(response.body()).string());
             }
         });
 
