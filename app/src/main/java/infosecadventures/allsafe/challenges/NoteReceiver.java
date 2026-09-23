@@ -30,9 +30,32 @@ public class NoteReceiver extends BroadcastReceiver {
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onReceive(Context context, Intent intent) {
+        // Validate the intent action
+        if (intent.getAction() != null && !intent.getAction().equals("infosecadventures.allsafe.action.PROCESS_NOTE")) {
+            Log.w("NoteReceiver", "Received unexpected action: " + intent.getAction());
+            return;
+        }
+
+        // Validate and sanitize incoming extras
         String server = intent.getStringExtra("server");
         String note = intent.getStringExtra("note");
         String notification_message = intent.getStringExtra("notification_message");
+
+        if (server != null) {
+            server = server.trim();
+        }
+        if (note != null) {
+            note = note.trim();
+        }
+        if (notification_message != null) {
+            notification_message = notification_message.trim();
+        }
+
+        // Basic validation: ensure critical parameters are not null or empty
+        if (server == null || server.isEmpty() || note == null || note.isEmpty()) {
+            Log.e("NoteReceiver", "Missing required 'server' or 'note' extra.");
+            return;
+        }
 
         OkHttpClient okHttpClient = new OkHttpClient.Builder().build();
 
@@ -47,8 +70,6 @@ public class NoteReceiver extends BroadcastReceiver {
                 .addQueryParameter("note", note)
                 .build();
 
-        Log.d("ALLSAFE", httpUrl.toString());
-
         Request request = new Request.Builder()
                 .url(httpUrl)
                 .build();
@@ -57,18 +78,16 @@ public class NoteReceiver extends BroadcastReceiver {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 // initially you'll probably get "Unable to resolve host" error message
-                Log.d("ALLSAFE", e.getMessage());
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                Log.d("ALLSAFE", Objects.requireNonNull(response.body()).string());
             }
         });
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "ALLSAFE");
         builder.setContentTitle("Notification from Allsafe");
-        builder.setContentText(notification_message);
+        builder.setContentText(notification_message != null ? notification_message : "Default message");
         builder.setSmallIcon(R.mipmap.ic_launcher_round);
         builder.setAutoCancel(true);
         builder.setChannelId("ALLSAFE");
