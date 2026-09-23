@@ -62,7 +62,6 @@ public class CertificatePinning extends Fragment {
                 @Override
                 public void onFailure(@NotNull Call call, @NotNull IOException e) {
                     final String message = e.getMessage();
-                    Log.d("ALLSAFE", message != null ? message : "IOException with no message");
                     if (getActivity() != null) {
                         requireActivity().runOnUiThread(() -> SnackUtil.INSTANCE.simpleMessage(requireActivity(), message != null ? message : "Connection failed!"));
                     }
@@ -70,7 +69,6 @@ public class CertificatePinning extends Fragment {
 
                 @Override
                 public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                    Log.d("ALLSAFE", Objects.requireNonNull(response.body()).string());
                     if (getActivity() != null) {
                         requireActivity().runOnUiThread(() -> {
                             if (response.isSuccessful()) {
