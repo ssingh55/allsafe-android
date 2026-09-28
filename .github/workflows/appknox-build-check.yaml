@@ -1,0 +1,98 @@
+# Appknox build check: does this repo compile on a stock GitHub runner?
+# Build only: nothing is installed, launched or tested. No secrets, no upload to Appknox.
+name: Appknox Build Check
+
+on:
+  push:
+    branches: [ci/build-check]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "17"
+  NDK_VERSION: "25.1.8937393"        # exact version, or a prefix such as "29." (newest match wins)
+  CMAKE_VERSION: "3.22.1"
+  NODE_VERSION: ""
+  FLUTTER_VERSION: ""
+  GO_VERSION_FILE: ""
+  RUST_TOOLCHAIN: ""
+  SUBMODULES: "recursive"
+  BUILD_CMD: "chmod +x gradlew && ./gradlew --no-daemon assembleDebug"
+  ARTIFACT_GLOB: "app/build/outputs/apk/debug/*.apk"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost \
+            /opt/hostedtoolcache/CodeQL /usr/local/lib/node_modules/@angular || true
+          df -h /
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: ${{ env.SUBMODULES }}
+
+      # JDK 17 first so JAVA_HOME_17_X64 always exists; JAVA_VERSION last so it wins JAVA_HOME.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Install NDK / CMake
+        if: env.NDK_VERSION != '' || env.CMAKE_VERSION != ''
+        run: |
+          sdk="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          pkgs=()
+          if [ -n "$NDK_VERSION" ]; then
+            ndk=$("$sdk" --list 2>/dev/null | grep -oE "ndk;${NDK_VERSION}[0-9.]*" | sort -V | tail -1)
+            if [ -z "$ndk" ]; then echo "::error::no NDK matches $NDK_VERSION"; exit 1; fi
+            pkgs+=("$ndk")
+          fi
+          if [ -n "$CMAKE_VERSION" ]; then pkgs+=("cmake;$CMAKE_VERSION"); fi
+          yes | "$sdk" "${pkgs[@]}" >/dev/null
+          if [ -n "$NDK_VERSION" ]; then
+            dir="$ANDROID_HOME/ndk/${ndk#ndk;}"
+            echo "ANDROID_NDK_HOME=$dir" >> "$GITHUB_ENV"
+            echo "ANDROID_NDK_ROOT=$dir" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: env.NODE_VERSION != ''
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: subosito/flutter-action@v2
+        if: env.FLUTTER_VERSION != ''
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - uses: actions/setup-go@v5
+        if: env.GO_VERSION_FILE != ''
+        with:
+          go-version-file: ${{ env.GO_VERSION_FILE }}
+
+      - uses: dtolnay/rust-toolchain@master
+        if: env.RUST_TOOLCHAIN != ''
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Build (build only, no tests, no run)
+        run: bash -euo pipefail -c "$BUILD_CMD"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: ${{ env.ARTIFACT_GLOB }}
+          if-no-files-found: error
+          retention-days: 14
