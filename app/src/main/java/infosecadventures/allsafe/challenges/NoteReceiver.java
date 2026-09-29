@@ -30,9 +30,24 @@ public class NoteReceiver extends BroadcastReceiver {
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public void onReceive(Context context, Intent intent) {
+        // 1. Validate the intent action
+        if (intent == null || !"infosecadventures.allsafe.action.PROCESS_NOTE".equals(intent.getAction())) {
+            // Log or handle invalid action, then return
+            return;
+        }
+
+        // 2. Extract and validate critical extras
         String server = intent.getStringExtra("server");
         String note = intent.getStringExtra("note");
         String notification_message = intent.getStringExtra("notification_message");
+
+        // Basic validation: ensure critical parameters are not null or empty
+        if (server == null || server.trim().isEmpty() ||
+            note == null || note.trim().isEmpty() ||
+            notification_message == null || notification_message.trim().isEmpty()) {
+            // Log an error or handle invalid input appropriately, then return
+            return;
+        }
 
         OkHttpClient okHttpClient = new OkHttpClient.Builder().build();
 
@@ -47,7 +62,9 @@ public class NoteReceiver extends BroadcastReceiver {
                 .addQueryParameter("note", note)
                 .build();
 
-        Log.d("ALLSAFE", httpUrl.toString());
+        // REMEDIATION: Do not log the full URL containing sensitive data.
+        // Log a generic message instead.
+        Log.d("ALLSAFE", "NoteReceiver processed an incoming request.");
 
         Request request = new Request.Builder()
                 .url(httpUrl)

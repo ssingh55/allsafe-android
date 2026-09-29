@@ -70,7 +70,7 @@ public class CertificatePinning extends Fragment {
 
                 @Override
                 public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                    Log.d("ALLSAFE", Objects.requireNonNull(response.body()).string());
+                    Log.d("ALLSAFE", "HTTP response received successfully.");
                     if (getActivity() != null) {
                         requireActivity().runOnUiThread(() -> {
                             if (response.isSuccessful()) {

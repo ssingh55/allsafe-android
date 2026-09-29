@@ -27,7 +27,7 @@ public class InsecureLogging extends Fragment {
         TextInputEditText secret = view.findViewById(R.id.secret);
         secret.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE && !Objects.requireNonNull(secret.getText()).toString().equals("")) {
-                Log.d("ALLSAFE", "User entered secret: " + secret.getText().toString());
+                Log.d("ALLSAFE", "User entered input.");
             }
             return false;
         });
