@@ -1,6 +1,7 @@
 package infosecadventures.allsafe.challenges;
 
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Random;
+import java.security.SecureRandom;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -23,12 +24,19 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
 import infosecadventures.allsafe.R;
+import infosecadventures.allsafe.utils.SecureCryptoManager;
 import infosecadventures.allsafe.utils.SnackUtil;
 
 public class WeakCryptography extends Fragment {
 
     public static final String KEY = "1nf053c4dv3n7ur3";
 
+    /**
+     * @deprecated This method uses insecure AES/ECB/PKCS5PADDING with a hardcoded key.
+     * Do not use. Migrate to a secure cryptographic implementation (e.g., AES/GCM)
+     * and remove this method after migration is complete.
+     */
+    @Deprecated
     public static String encrypt(String value) {
         try {
             SecretKeySpec secretKeySpec = new SecretKeySpec(KEY.getBytes(StandardCharsets.UTF_8), "AES");
@@ -47,6 +55,31 @@ public class WeakCryptography extends Fragment {
         return null;
     }
 
+    /**
+     * Temporary method to decrypt data previously encrypted by the insecure `encrypt` method.
+     * This method uses the old, weak algorithm (AES/ECB/PKCS5PADDING) and hardcoded key.
+     * It MUST be removed after all data migration is complete.
+     *
+     * @param encryptedText The string output from the old `encrypt` method.
+     * @return The original plaintext string.
+     * @throws java.security.GeneralSecurityException if decryption fails.
+     */
+    public static String decryptOldData(String encryptedText) throws java.security.GeneralSecurityException {
+        // WARNING: This method is for temporary data migration ONLY.
+        // It uses the insecure algorithm and hardcoded key from the old implementation.
+        // REMOVE this method and all its callers after all data has been successfully migrated
+        // to a secure encryption scheme (e.g., AES/GCM with a securely managed key).
+
+        SecretKeySpec secretKeySpec = new SecretKeySpec(KEY.getBytes(StandardCharsets.UTF_8), "AES");
+
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
+        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec);
+
+        byte[] encryptedBytes = encryptedText.getBytes(StandardCharsets.UTF_8);
+        byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+        return new String(decryptedBytes, StandardCharsets.UTF_8);
+    }
+
     public static String md5Hash(String text) {
         StringBuilder stringBuilder = new StringBuilder();
         try {
@@ -61,9 +94,9 @@ public class WeakCryptography extends Fragment {
     }
 
     public static String randomNumber() {
-        Random rnd = new Random();
-        int n = rnd.nextInt(100000) + 1;
-        return Integer.toString(n);
+        SecureRandom secureRandom = new SecureRandom();
+        int secureValue = secureRandom.nextInt(100000) + 1;
+        return Integer.toString(secureValue);
     }
 
     @Override
@@ -73,7 +106,16 @@ public class WeakCryptography extends Fragment {
         view.findViewById(R.id.encrypt).setOnClickListener(v -> {
             String plain_text = secret.getText().toString();
             if (!plain_text.isEmpty()) {
-                SnackUtil.INSTANCE.simpleMessage(requireActivity(), "Result: " + encrypt(plain_text));
+                try {
+                    SecureCryptoManager secureCryptoManager = new SecureCryptoManager();
+                    byte[] plaintextBytes = plain_text.getBytes(StandardCharsets.UTF_8);
+                    infosecadventures.allsafe.utils.EncryptionResult encryptionResult = secureCryptoManager.encryptData(plaintextBytes, secureCryptoManager.getOrCreateSecretKey());
+                    String ciphertextEncoded = Base64.encodeToString(encryptionResult.getCiphertext(), Base64.DEFAULT);
+                    SnackUtil.INSTANCE.simpleMessage(requireActivity(), "Result: " + ciphertextEncoded);
+                } catch (Exception e) {
+                    Log.e("WeakCryptography", "Encryption failed", e);
+                    SnackUtil.INSTANCE.simpleMessage(requireActivity(), "Encryption failed: " + e.getMessage());
+                }
             } else {
                 SnackUtil.INSTANCE.simpleMessage(requireActivity(), "First, you have to enter your secrets!");
             }
