@@ -19,3 +19,17 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Strip Log.d and Log.v calls from release builds
+-assumenosideeffects class android.util.Log {
+ public static int v(...);
+ public static int d(...);
+}
+
+# Keep attributes necessary for debugging and reflection
+-keepattributes *Annotation*, EnclosingMethod, InnerClasses
+
+# Strip Log.i calls from release builds
+-assumenosideeffects class android.util.Log {
+ public static *** i(...);
+}
