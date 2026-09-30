@@ -18,6 +18,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // StrandHogg 2.0 mitigation: Check if this activity is the root of the task.
+        // If not, it means it was launched into an existing task, potentially by a malicious app.
+        // In such cases, finish the activity to prevent task hijacking.
+        if (!isTaskRoot()) {
+            finish()
+            return
+        }
+
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE,
                 WindowManager.LayoutParams.FLAG_SECURE)
 

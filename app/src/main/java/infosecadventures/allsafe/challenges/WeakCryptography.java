@@ -9,42 +9,55 @@ import android.widget.EditText;
 
 import androidx.fragment.app.Fragment;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Random;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import infosecadventures.allsafe.R;
+import infosecadventures.allsafe.utils.SecureKeyManager;
 import infosecadventures.allsafe.utils.SnackUtil;
 
 public class WeakCryptography extends Fragment {
 
     public static final String KEY = "1nf053c4dv3n7ur3";
 
-    public static String encrypt(String value) {
-        try {
-            SecretKeySpec secretKeySpec = new SecretKeySpec(KEY.getBytes(StandardCharsets.UTF_8), "AES");
-            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec);
-            byte[] encrypted = cipher.doFinal(value.getBytes());
-            return new String(encrypted);
-        } catch (
-                NoSuchPaddingException |
-                        NoSuchAlgorithmException |
-                        InvalidKeyException |
-                        BadPaddingException |
-                        IllegalBlockSizeException e) {
-            e.printStackTrace();
+    // Define a static nested class for EncryptionResult
+    public static class EncryptionResult {
+        public final byte[] ciphertext;
+        public final byte[] iv;
+
+        public EncryptionResult(byte[] ciphertext, byte[] iv) {
+            this.ciphertext = ciphertext;
+            this.iv = iv;
         }
-        return null;
+    }
+
+    public static EncryptionResult encrypt(String plaintext, SecretKey key) throws GeneralSecurityException {
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+
+        SecureRandom secureRandom = new SecureRandom();
+        byte[] iv = new byte[12]; // 96-bit IV for GCM
+        secureRandom.nextBytes(iv);
+
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv); // 128-bit tag length (16 bytes * 8)
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec); // Initialize with provided key and GCM spec
+
+        byte[] ciphertext = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
+
+        return new EncryptionResult(ciphertext, iv); // Return custom object containing ciphertext and IV
     }
 
     public static String md5Hash(String text) {
@@ -61,8 +74,10 @@ public class WeakCryptography extends Fragment {
     }
 
     public static String randomNumber() {
-        Random rnd = new Random();
-        int n = rnd.nextInt(100000) + 1;
+        SecureRandom secureRandom = new SecureRandom();
+        // Generate a random number between 0 (inclusive) and 100000 (exclusive),
+        // then add 1 to match the original range (1 to 100000 inclusive).
+        int n = secureRandom.nextInt(100000) + 1;
         return Integer.toString(n);
     }
 
@@ -73,7 +88,14 @@ public class WeakCryptography extends Fragment {
         view.findViewById(R.id.encrypt).setOnClickListener(v -> {
             String plain_text = secret.getText().toString();
             if (!plain_text.isEmpty()) {
-                SnackUtil.INSTANCE.simpleMessage(requireActivity(), "Result: " + encrypt(plain_text));
+                try {
+                    SecretKey secureKey = SecureKeyManager.getOrCreateSecretKey();
+                    EncryptionResult encryptedData = encrypt(plain_text, secureKey);
+                    SnackUtil.INSTANCE.simpleMessage(requireActivity(), "Result: " + new String(encryptedData.ciphertext));
+                } catch (GeneralSecurityException | IOException e) {
+                    e.printStackTrace();
+                    SnackUtil.INSTANCE.simpleMessage(requireActivity(), "Encryption failed");
+                }
             } else {
                 SnackUtil.INSTANCE.simpleMessage(requireActivity(), "First, you have to enter your secrets!");
             }
