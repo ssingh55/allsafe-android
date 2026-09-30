@@ -29,7 +29,8 @@ import okhttp3.Response;
 
 public class CertificatePinning extends Fragment {
 
-    private static final String INVALID_HASH = "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    private static final String PRIMARY_PIN = "sha256/5kJvNEMw+2+mlBiGTPUpBGyT68=";
+    private static final String BACKUP_PIN = "sha256/r/mIkG3eDigkrVA50Bj+cVvXzhMB5OUlY10hMYvfD5s=";
     private final List<String> hashes = new ArrayList<>();
 
     @Override
@@ -46,7 +47,7 @@ public class CertificatePinning extends Fragment {
 
             CertificatePinner.Builder certificatePinner = new CertificatePinner.Builder();
             for (String hash : hashes) {
-                Log.d("ALLSAFE", hash);
+                Log.d("ALLSAFE", "Processing certificate hash.");
                 certificatePinner.add("httpbin.io", hash);
             }
 
@@ -62,7 +63,7 @@ public class CertificatePinning extends Fragment {
                 @Override
                 public void onFailure(@NotNull Call call, @NotNull IOException e) {
                     final String message = e.getMessage();
-                    Log.d("ALLSAFE", message != null ? message : "IOException with no message");
+                    Log.d("ALLSAFE", "Network request failed during certificate pinning.");
                     if (getActivity() != null) {
                         requireActivity().runOnUiThread(() -> SnackUtil.INSTANCE.simpleMessage(requireActivity(), message != null ? message : "Connection failed!"));
                     }
@@ -70,7 +71,6 @@ public class CertificatePinning extends Fragment {
 
                 @Override
                 public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                    Log.d("ALLSAFE", Objects.requireNonNull(response.body()).string());
                     if (getActivity() != null) {
                         requireActivity().runOnUiThread(() -> {
                             if (response.isSuccessful()) {
@@ -85,10 +85,12 @@ public class CertificatePinning extends Fragment {
     }
 
     private void extractPeerCertificateChain() {
+        CertificatePinner.Builder certificatePinnerBuilder = new CertificatePinner.Builder();
+        certificatePinnerBuilder.add("httpbin.io", PRIMARY_PIN);
+        certificatePinnerBuilder.add("httpbin.io", BACKUP_PIN);
+        
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
-                .certificatePinner(new CertificatePinner.Builder()
-                        .add("httpbin.io", INVALID_HASH)
-                        .build())
+                .certificatePinner(certificatePinnerBuilder.build())
                 .build();
 
         Request request = new Request.Builder()
@@ -101,23 +103,14 @@ public class CertificatePinning extends Fragment {
                 if (getActivity() != null) {
                     requireActivity().runOnUiThread(() -> {
                         String message = e.getMessage();
-                        if (message != null) {
-                            hashes.clear();
-                            String[] lines = message.split(System.getProperty("line.separator"));
-                            for (String line : lines) {
-                                if (!line.trim().equals(INVALID_HASH) && line.trim().startsWith("sha256")) {
-                                    String pin = line.trim().split(":")[0].trim();
-                                    hashes.add(pin);
-                                }
-                            }
-                        }
+                        Log.d("ALLSAFE", "Certificate pinning validation failed: " + message);
                     });
                 }
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) {
-                // This is not expected for the initial call, but we do nothing here anyway.
+                // Certificate pinning validation successful
             }
         });
     }

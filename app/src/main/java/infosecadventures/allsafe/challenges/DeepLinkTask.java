@@ -16,6 +16,16 @@ public class DeepLinkTask extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Add this check to prevent StrandHogg 2.0 task hijacking
+        // If this activity is not the root of a new task, it means it was launched
+        // into an existing task, potentially by a malicious app.
+        // Finish the activity to prevent it from being hijacked.
+        if (!isTaskRoot()) {
+            finish();
+            return;
+        }
+
         setContentView(R.layout.activity_deep_link_task);
 
         Intent intent = getIntent();
